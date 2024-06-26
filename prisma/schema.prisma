@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,12 +8,97 @@ datasource db {
 }
 
 model users {
-  id             Int      @default(autoincrement())
-  uuid           String   @unique @default(uuid())
-  name           String
-  email          String   @unique
-  email_verified Boolean  @default(false)
+  id             Int       @default(autoincrement())
+  uuid           String    @unique @default(uuid()) @db.Uuid()
+  name           String    @db.VarChar()
+  email          String    @unique @db.VarChar()
+  email_verified Boolean   @default(false)
   password       String
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+  orders         orders[]
+  reviews        reviews[]
+}
+
+model categories {
+  id            Int    @default(autoincrement())
+  uuid          String @unique @default(uuid()) @db.Uuid()
+  category_name String @db.VarChar()
+
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  products   products[]
+}
+
+model banners {
+  id           Int     @default(autoincrement())
+  uuid         String  @unique @default(uuid()) @db.Uuid()
+  product_id   String  @db.Uuid //fk
+  banner_type  String  @db.VarChar()
+  url          String
+  is_published Boolean @default(false)
+
+  product products @relation(fields: [product_id], references: [uuid])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model products {
+  id                  Int      @default(autoincrement())
+  uuid                String   @unique @default(uuid()) @db.Uuid()
+  category_id         String   @db.Uuid() //fk 
+  product_name        String   @db.VarChar()
+  product_description String
+  product_image       String
+  product_price       String   @db.VarChar()
+  product_status      String   @db.VarChar()
+  product_features    String
+  other_images        String
+  product_date        DateTime
+
+  category categories @relation(fields: [category_id], references: [uuid])
+
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  reviews    reviews[]
+  banners    banners[]
+}
+
+model orders {
+  id                   Int      @default(autoincrement())
+  uuid                 String   @unique @default(uuid()) @db.Uuid()
+  order_no             Int
+  user_id              String   @db.Uuid() // fk
+  shipping_email       String   @db.VarChar()
+  shipping_phone       String   @db.VarChar()
+  shipping_addres      String
+  order_payment_method String   @db.VarChar()
+  cart_items           Int
+  items_price          String   @db.VarChar()
+  delivery_charge      String   @db.VarChar()
+  total_price          String   @db.VarChar()
+  status               String   @db.VarChar()
+  payment_date         DateTime
+
+  user users @relation(fields: [user_id], references: [uuid])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model reviews {
+  id         Int    @default(autoincrement())
+  uuid       String @unique @default(uuid()) @db.Uuid()
+  user_id    String @db.Uuid() //fk 
+  product_id String @db.Uuid() //fk
+  review     String
+  rating     String @db.VarChar()
+  status     String @db.VarChar()
+
+  user    users    @relation(fields: [user_id], references: [uuid])
+  product products @relation(fields: [product_id], references: [uuid])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
