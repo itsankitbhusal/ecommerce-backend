@@ -7,7 +7,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
   create(createCategoryDto: CreateCategoryDto) {
-    console.log('create category dto: ', createCategoryDto);
     return this.prisma.categories.create({ data: createCategoryDto });
   }
 
