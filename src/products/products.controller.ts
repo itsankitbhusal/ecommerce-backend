@@ -6,11 +6,14 @@ import {
   Patch,
   Param,
   Delete,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ProductResponseDTO } from './dto/product-response.dto';
+import { ApiTags } from '@nestjs/swagger';
+import { plainToInstance } from 'class-transformer';
 
 @Controller('products')
 @ApiTags('products')
@@ -19,34 +22,44 @@ export class ProductsController {
 
   @Post()
   create(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.create(createProductDto);
+    const data = this.productsService.create(createProductDto);
+    return plainToInstance(ProductResponseDTO, data);
   }
 
   @Get()
   findAll() {
-    return this.productsService.findAll();
+    const data = this.productsService.findAll();
+    return plainToInstance(ProductResponseDTO, data);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
     try {
-      const res = await this.productsService.findOne(id);
-      if (res === null) {
+      const data = await this.productsService.findOne(id);
+      if (data === null) {
         return 'Product not found!';
       }
-      return res;
+      return plainToInstance(ProductResponseDTO, data);
     } catch (error) {
       console.log('error: ', error);
     }
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productsService.update(id, updateProductDto);
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    const data = this.productsService.update(id, updateProductDto);
+    return plainToInstance(ProductResponseDTO, data);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productsService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = this.productsService.remove(id);
+    if (data) {
+      return 'Data deleted';
+    }
+    console.log('data: ', data);
   }
 }
