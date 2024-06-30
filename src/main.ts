@@ -1,12 +1,18 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import {
+  ClassSerializerInterceptor,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
+import { ResponseInterceptor } from './response/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   const config = new DocumentBuilder()
     .setTitle('Ecommerce REST API')
@@ -18,5 +24,14 @@ async function bootstrap() {
   SwaggerModule.setup('api', app, document);
 
   await app.listen(3000);
+}
+
+export function registerGlobals(app: INestApplication) {
+  app.useGlobalInterceptors(
+    new ClassSerializerInterceptor(app.get(Reflector), {
+      strategy: 'excludeAll',
+      excludeExtraneousValues: true,
+    }),
+  );
 }
 bootstrap();
