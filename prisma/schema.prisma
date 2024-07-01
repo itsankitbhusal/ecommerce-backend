@@ -63,6 +63,7 @@ model products {
   updated_at DateTime  @updatedAt
   reviews    reviews[]
   banners    banners[]
+  orders     orders[]
 }
 
 model orders {
@@ -70,9 +71,10 @@ model orders {
   uuid                 String   @unique @default(uuid()) @db.Uuid()
   order_no             Int
   user_id              String   @db.Uuid() // fk
+  product_id           String   @db.Uuid() //fk
   shipping_email       String   @db.VarChar()
   shipping_phone       String   @db.VarChar()
-  shipping_addres      String
+  shipping_address      String
   order_payment_method String   @db.VarChar()
   cart_items           Int
   items_price          String   @db.VarChar()
@@ -81,7 +83,8 @@ model orders {
   status               String   @db.VarChar()
   payment_date         DateTime
 
-  user users @relation(fields: [user_id], references: [uuid])
+  user    users    @relation(fields: [user_id], references: [uuid])
+  product products @relation(fields: [product_id], references: [uuid])
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
