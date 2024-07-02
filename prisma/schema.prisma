@@ -74,7 +74,7 @@ model orders {
   product_id           String   @db.Uuid() //fk
   shipping_email       String   @db.VarChar()
   shipping_phone       String   @db.VarChar()
-  shipping_address      String
+  shipping_address     String
   order_payment_method String   @db.VarChar()
   cart_items           Int
   items_price          String   @db.VarChar()

@@ -37,6 +37,9 @@ export class CreateOrderDto {
   @ApiProperty({ required: true })
   order_payment_method: string;
 
+  @ApiProperty({ required: false })
+  cart_items: number;
+
   @ApiProperty({ required: true })
   items_price: string;
 
