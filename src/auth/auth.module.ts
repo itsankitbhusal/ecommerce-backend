@@ -1,39 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MiddlewareConsumer, NestModule, DynamicModule } from '@nestjs/common';
-import { ConfigInjectionToken, AuthModuleConfig } from './config.interface';
-import { AuthMiddleware } from './auth.middleware';
-import { SupertokensService } from './supertokens/supertokens.serive';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
-  providers: [],
-  exports: [],
-  controllers: [],
+  controllers: [AuthController],
+  providers: [AuthService],
+  imports: [PrismaModule],
 })
-export class AuthModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(AuthMiddleware).forRoutes('*');
-  }
-
-  static forRoot({
-    connectionURI,
-    apiKey,
-    appInfo,
-  }: AuthModuleConfig): DynamicModule {
-    return {
-      providers: [
-        {
-          useValue: {
-            appInfo,
-            connectionURI,
-            apiKey,
-          },
-          provide: ConfigInjectionToken,
-        },
-        SupertokensService,
-      ],
-      exports: [],
-      imports: [],
-      module: AuthModule,
-    };
-  }
-}
+export class AuthModule {}

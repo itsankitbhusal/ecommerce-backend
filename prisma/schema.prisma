@@ -7,6 +7,29 @@ datasource db {
   url      = "postgresql://root:itsankitbhusal@127.0.0.1:5432/fullstack_ecommerce"
 }
 
+model unverified_users {
+  id             Int     @default(autoincrement())
+  uuid           String  @unique @default(uuid()) @db.Uuid()
+  name           String  @db.VarChar()
+  email          String  @unique @db.VarChar()
+  email_verified Boolean @default(false)
+  password       String
+  otp            String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model password_otp {
+  id        Int    @id @default(autoincrement())
+  uuid      String @unique @default(uuid()) @db.Uuid()
+  hashOtp   String
+  user_mail String @unique
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
 model users {
   id             Int       @default(autoincrement())
   uuid           String    @unique @default(uuid()) @db.Uuid()
