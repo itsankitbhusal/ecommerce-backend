@@ -1,26 +1,284 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { UtilService } from 'src/utils/util.service';
+import { MailService } from 'src/mail/mail.service';
+import { ConfigService } from '@nestjs/config';
+import { unverifiedUserType } from './Types/user.types';
+import {
+  OTPAuthDto,
+  OtpPasswordDto,
+  PasswordAuthDto,
+  SigninAuthDto,
+  SignupAuthDto,
+} from './dto/otp-auth.dto';
+import * as argon from 'argon2';
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  constructor(
+    private prisma: PrismaService,
+    private utility: UtilService,
+    private mailer: MailService,
+    private config: ConfigService,
+  ) {}
+
+  async updateRtHash(uuid: string, rt: string) {
+    const hash = await this.utility.hashData(rt);
+    await this.prisma.users.update({
+      where: {
+        uuid: uuid,
+      },
+      data: {
+        hashRT: hash,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all auth`;
+  async updateOtp(uuid: string) {
+    const otp = await this.utility.generateOtp();
+    const hashedOtp = await this.utility.hashData(String(otp));
+    const user = await this.prisma.unverified_users.update({
+      where: {
+        uuid: uuid,
+      },
+      data: {
+        otp: hashedOtp,
+      },
+    });
+    delete user.otp;
+    return { ...user, otp: String(otp) };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
+  async create(createAuthDto: CreateAuthDto) {
+    let user: unverifiedUserType, otp: string;
+
+    const verifiedUser = await this.prisma.users.findUnique({
+      where: { email: createAuthDto.email },
+    });
+    if (verifiedUser) {
+      throw new HttpException('Already Exist', HttpStatus.CONFLICT);
+    }
+
+    const notVerifiedUser = await this.prisma.unverified_users.findUnique({
+      where: { email: createAuthDto.email },
+    });
+
+    if (notVerifiedUser) {
+      // send otp for verification
+      user = await this.updateOtp(notVerifiedUser.uuid);
+      otp = user.otp;
+    } else {
+      const hash = await this.utility.hashData(createAuthDto.password);
+      otp = String(await this.utility.generateOtp);
+      const hashedOtp = await this.utility.hashData(otp);
+
+      user = await this.prisma.unverified_users.create({
+        data: {
+          email: createAuthDto.email,
+          password: hash,
+          name: createAuthDto.name,
+          otp: hashedOtp,
+        },
+      });
+    }
+
+    delete user.password;
+    delete user.otp;
+
+    await this.mailer.sendUserConfirmation(user.email, user.name, otp);
+    return user;
+  }
+  async verifyUser(otpAuthDto: OTPAuthDto) {
+    const user = await this.prisma.unverified_users.findUnique({
+      where: {
+        uuid: otpAuthDto.uuid,
+      },
+    });
+
+    if (!user) return false;
+
+    const otpMatch = await argon.verify(user.otp, otpAuthDto.otp);
+
+    if (otpMatch) {
+      delete user.otp;
+      delete user.id;
+      delete user.uuid;
+
+      const newUser = await this.prisma.users.create({
+        data: { ...user },
+      });
+
+      await this.prisma.unverified_users.delete({
+        where: {
+          email: user.email,
+        },
+      });
+
+      if (newUser) {
+        return true;
+      } else {
+        return false;
+      }
+    }
   }
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
+  async changePassword(dto: PasswordAuthDto) {
+    try {
+      await this.prisma.password_otp.delete({
+        where: {
+          user_mail: dto.email,
+        },
+      });
+    } catch (err) {}
+
+    const user = await this.prisma.password_otp.findUnique({
+      where: {
+        user_mail: dto.email,
+      },
+    });
+    if (!user) throw new HttpException('Not Found', HttpStatus.NOT_FOUND);
+
+    const otp = String(await this.utility.generateOtp());
+    const hashOtp = await this.utility.hashData(otp);
+    // create a reln table to store user vs otp
+    await this.mailer.sendUserConfirmation(user.user_mail, user.user_mail, otp);
+
+    const newPassOtp = await this.prisma.password_otp.create({
+      data: {
+        user_mail: dto.email,
+        hashOtp,
+      },
+    });
+
+    if (!newPassOtp)
+      if (!user) throw new HttpException('Not Found', HttpStatus.NOT_FOUND);
+
+    return {
+      message: 'Email Sent',
+    };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+  async verifyPasswordChange(dto: OtpPasswordDto) {
+    const passOtp = await this.prisma.password_otp.findUnique({
+      where: {
+        user_mail: dto.email,
+      },
+    });
+    const isOtp = await argon.verify(passOtp.hashOtp, dto.otp);
+    if (!isOtp)
+      throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+
+    const password = await argon.hash(dto.password);
+    const user = await this.prisma.users.update({
+      where: {
+        email: dto.email,
+      },
+      data: {
+        password,
+      },
+    });
+    if (!user)
+      throw new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    await this.prisma.password_otp.delete({
+      where: {
+        uuid: passOtp.uuid,
+      },
+    });
+  }
+
+  async login(dto: SigninAuthDto) {
+    // find user and if not present throw error
+    const user = await this.prisma.users.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+    if (!user) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+
+    // verify user's password
+    const isUser = await argon.verify(user.password, dto.password);
+    if (!isUser) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+
+    const tokens = await this.utility.getToken(user.uuid, user.email);
+    await this.updateRtHash(user.uuid, tokens.refresh_token);
+    delete user.hashRT;
+    delete user.password;
+    return { ...tokens, ...user };
+  }
+
+  async signup(dto: SignupAuthDto) {
+    let user: unverifiedUserType, otp: string;
+    // if user already exist in as verified user
+    const preExist = await this.prisma.users.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+    if (preExist) throw new HttpException('Already Exist', HttpStatus.CONFLICT);
+    const reSend = await this.prisma.unverified_users.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+    if (reSend) {
+      user = await this.updateOtp(reSend.uuid);
+      otp = user.otp;
+    } else {
+      const hash = await this.utility.hashData(dto.password);
+      otp = String(await this.utility.generateOtp());
+      const hashedOtp = await this.utility.hashData(String(otp));
+      user = await this.prisma.unverified_users.create({
+        data: {
+          email: dto.email,
+          password: hash,
+          name: dto.username,
+          otp: hashedOtp,
+        },
+      });
+      delete user.password;
+      delete user.otp;
+
+      await this.mailer.sendUserConfirmation(user.email, user.name, otp);
+      return user;
+    }
+  }
+  async logout(uuid: string) {
+    await this.prisma.users.updateMany({
+      where: {
+        uuid: uuid,
+        hashRT: {
+          not: null,
+        },
+      },
+      data: {
+        hashRT: null,
+      },
+    });
+  }
+
+  async refreshToken(uuid: string, rt: string) {
+    const user = await this.prisma.users.findUnique({
+      where: {
+        uuid: uuid,
+      },
+    });
+    if (!user)
+      throw new HttpException('Unauthorized1', HttpStatus.UNAUTHORIZED);
+
+    const Validity = await argon.verify(user.hashRT, rt);
+    if (!Validity)
+      throw new HttpException('Unauthorized2', HttpStatus.UNAUTHORIZED);
+
+    const tokens = await this.utility.getToken(user.uuid, user.email);
+    await this.updateRtHash(user.uuid, tokens.refresh_token);
+    return tokens;
+  }
+
+  async getPayload(access_token: string) {
+    return this.utility.getPayload(access_token);
   }
 }

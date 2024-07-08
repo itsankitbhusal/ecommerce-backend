@@ -8,13 +8,12 @@ datasource db {
 }
 
 model unverified_users {
-  id             Int     @default(autoincrement())
-  uuid           String  @unique @default(uuid()) @db.Uuid()
-  name           String  @db.VarChar()
-  email          String  @unique @db.VarChar()
-  email_verified Boolean @default(false)
-  password       String
-  otp            String?
+  id       Int     @default(autoincrement())
+  uuid     String  @unique @default(uuid()) @db.Uuid()
+  name     String  @db.VarChar()
+  email    String  @unique @db.VarChar()
+  password String
+  otp      String?
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -31,16 +30,16 @@ model password_otp {
 }
 
 model users {
-  id             Int       @default(autoincrement())
-  uuid           String    @unique @default(uuid()) @db.Uuid()
-  name           String    @db.VarChar()
-  email          String    @unique @db.VarChar()
-  email_verified Boolean   @default(false)
-  password       String
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
-  orders         orders[]
-  reviews        reviews[]
+  id         Int       @default(autoincrement())
+  uuid       String    @unique @default(uuid()) @db.Uuid()
+  name       String    @db.VarChar()
+  email      String    @unique @db.VarChar()
+  password   String
+  hashRT     String?
+  created_at DateTime  @default(now())
+  updated_at DateTime  @updatedAt
+  orders     orders[]
+  reviews    reviews[]
 }
 
 model categories {
