@@ -1,18 +1,17 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilService } from 'src/utils/util.service';
 import { MailService } from 'src/mail/mail.service';
 import { ConfigService } from '@nestjs/config';
-import { unverifiedUserType } from './Types/user.types';
 import {
   OTPAuthDto,
   OtpPasswordDto,
   PasswordAuthDto,
   SigninAuthDto,
-  SignupAuthDto,
 } from './dto/otp-auth.dto';
 import * as argon from 'argon2';
+import { CreateAuthDto } from './dto/create-auth.dto';
+import { unverifiedUserType } from './Types/user.types';
 
 @Injectable()
 export class AuthService {
@@ -50,45 +49,6 @@ export class AuthService {
     return { ...user, otp: String(otp) };
   }
 
-  async create(createAuthDto: CreateAuthDto) {
-    let user: unverifiedUserType, otp: string;
-
-    const verifiedUser = await this.prisma.users.findUnique({
-      where: { email: createAuthDto.email },
-    });
-    if (verifiedUser) {
-      throw new HttpException('Already Exist', HttpStatus.CONFLICT);
-    }
-
-    const notVerifiedUser = await this.prisma.unverified_users.findUnique({
-      where: { email: createAuthDto.email },
-    });
-
-    if (notVerifiedUser) {
-      // send otp for verification
-      user = await this.updateOtp(notVerifiedUser.uuid);
-      otp = user.otp;
-    } else {
-      const hash = await this.utility.hashData(createAuthDto.password);
-      otp = String(await this.utility.generateOtp);
-      const hashedOtp = await this.utility.hashData(otp);
-
-      user = await this.prisma.unverified_users.create({
-        data: {
-          email: createAuthDto.email,
-          password: hash,
-          name: createAuthDto.name,
-          otp: hashedOtp,
-        },
-      });
-    }
-
-    delete user.password;
-    delete user.otp;
-
-    await this.mailer.sendUserConfirmation(user.email, user.name, otp);
-    return user;
-  }
   async verifyUser(otpAuthDto: OTPAuthDto) {
     const user = await this.prisma.unverified_users.findUnique({
       where: {
@@ -210,7 +170,7 @@ export class AuthService {
     return { ...tokens, ...user };
   }
 
-  async signup(dto: SignupAuthDto) {
+  async signup(dto: CreateAuthDto) {
     let user: unverifiedUserType, otp: string;
     // if user already exist in as verified user
     const preExist = await this.prisma.users.findUnique({
@@ -235,7 +195,7 @@ export class AuthService {
         data: {
           email: dto.email,
           password: hash,
-          name: dto.username,
+          name: dto.name,
           otp: hashedOtp,
         },
       });
