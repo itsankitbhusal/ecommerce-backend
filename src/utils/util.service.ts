@@ -1,12 +1,13 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 
+@Injectable()
 export class UtilService {
   constructor(
-    private jwtService: JwtService,
-    private config: ConfigService,
+    private readonly jwtService: JwtService,
+    private readonly config: ConfigService,
   ) {}
 
   async hashData(body: string) {
@@ -14,6 +15,18 @@ export class UtilService {
   }
 
   async getToken(uuid: string, email: string) {
+    const rt = await this.jwtService.signAsync(
+      {
+        uuid,
+        email,
+      },
+      {
+        secret: this.config.get('RT_SECRET'),
+        expiresIn: 60 * 60 * 60 * 7,
+      },
+    );
+
+    console.log('rt: ', rt);
     const refreshToken = await this.jwtService.signAsync(
       {
         sub: uuid,
@@ -25,6 +38,8 @@ export class UtilService {
       },
     );
 
+    console.log('rt: ', refreshToken);
+
     const accessToken = await this.jwtService.signAsync(
       {
         sub: uuid,
@@ -35,6 +50,8 @@ export class UtilService {
         expiresIn: 60 * 20,
       },
     );
+
+    console.log('at: ', accessToken);
 
     return {
       access_token: accessToken,

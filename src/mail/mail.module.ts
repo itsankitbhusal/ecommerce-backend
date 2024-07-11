@@ -12,6 +12,7 @@ import { ConfigService } from '@nestjs/config';
       useFactory: async (config: ConfigService) => ({
         transport: {
           host: config.get('MAIL_HOST'),
+          port: config.get('MAIL_PORT'),
           secure: false,
           auth: {
             user: config.get('MAIL_ID'),
@@ -19,7 +20,7 @@ import { ConfigService } from '@nestjs/config';
           },
         },
         defaults: {
-          from: `"No Reply" <noreply@gmail.com>`,
+          from: `"No Reply" <ankitbhusal59@gmail.com>`,
         },
         template: {
           dir: join(__dirname, 'templates'),

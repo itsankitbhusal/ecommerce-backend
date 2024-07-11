@@ -24,7 +24,7 @@ export class AuthService {
 
   async updateRtHash(uuid: string, rt: string) {
     const hash = await this.utility.hashData(rt);
-    await this.prisma.users.update({
+    const data = await this.prisma.users.update({
       where: {
         uuid: uuid,
       },
@@ -32,6 +32,7 @@ export class AuthService {
         hashRT: hash,
       },
     });
+    console.log('data after rt hash update: ', data);
   }
 
   async updateOtp(uuid: string) {
@@ -157,16 +158,21 @@ export class AuthService {
         email: dto.email,
       },
     });
+    console.log('user: ', user);
     if (!user) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
     // verify user's password
     const isUser = await argon.verify(user.password, dto.password);
+    console.log('is user: ', isUser);
     if (!isUser) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
     const tokens = await this.utility.getToken(user.uuid, user.email);
     await this.updateRtHash(user.uuid, tokens.refresh_token);
     delete user.hashRT;
     delete user.password;
+
+    console.log('tokens: ', tokens);
+    console.log('user: ', user);
     return { ...tokens, ...user };
   }
 
