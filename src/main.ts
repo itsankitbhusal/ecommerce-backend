@@ -18,7 +18,13 @@ async function bootstrap() {
     .setTitle('Ecommerce REST API')
     .setDescription('Ecommerce rest api documetation')
     .setVersion('0.1')
+    .addBearerAuth()
+    .addBasicAuth()
     .build();
+
+  app.enableCors({
+    origin: '*',
+  });
 
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);

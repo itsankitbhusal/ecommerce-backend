@@ -3,7 +3,7 @@ import { Exclude, Expose } from 'class-transformer';
 @Exclude()
 export class ProductResponseDTO {
   @Expose()
-  product_id: string;
+  uuid: string;
 
   @Expose()
   category_id: string;
@@ -31,10 +31,4 @@ export class ProductResponseDTO {
 
   @Expose()
   product_date: Date;
-
-  @Exclude()
-  created_at: string;
-
-  @Exclude()
-  updated_at: string;
 }
