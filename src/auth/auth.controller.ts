@@ -1,31 +1,20 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Req,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Req, Res } from '@nestjs/common';
 import { Response } from 'express';
 
 import { AuthService } from './auth.service';
-import { ApiTags } from '@nestjs/swagger';
-import {
-  OTPAuthDto,
-  OtpPasswordDto,
-  PasswordAuthDto,
-  SigninAuthDto,
-} from './dto/otp-auth.dto';
-import { AuthGuard } from '@nestjs/passport';
+import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { OTPAuthDto } from './dto/otp-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
+import { SigninAuthDto } from './dto/signin-auth.dto';
+import { OtpPasswordDto } from './dto/otp-password.dto';
+import { PasswordAuthDto } from './dto/password-auth.dto';
+import { PayloadAuthDto } from './dto/payload-auth.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { LogoutAuthDto } from './dto/logout-auth.dto';
 
 interface CustomRequest extends Request {
-  user?: {
-    refreshToken: string;
-    uuid: string;
-  };
+  refreshToken?: string;
+  uuid?: string;
 }
 
 @ApiTags('auth')
@@ -43,9 +32,10 @@ export class AuthController {
   }
 
   @Get('/logout')
+  @ApiBody({ type: LogoutAuthDto })
   async logout(@Req() req: CustomRequest) {
-    if (req.user.uuid) {
-      return await this.authService.logout(req.user.uuid);
+    if (req.uuid) {
+      return await this.authService.logout(req.uuid);
     }
   }
 
@@ -76,16 +66,17 @@ export class AuthController {
   }
 
   @Get('/refresh')
+  @ApiBody({ type: RefreshTokenDto })
   async refreshToken(@Req() req: CustomRequest) {
-    const user = req.user;
-    if (user) {
-      return await this.authService.refreshToken(user.uuid, user.refreshToken);
+    const { uuid, refreshToken } = req;
+    if (uuid && refreshToken) {
+      return await this.authService.refreshToken(uuid, refreshToken);
     }
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  // @UseGuards(AuthGuard('jwt'))
   @Post('payload')
-  async getPayload(@Body() dto: { access_token: string }) {
+  async getPayload(@Body() dto: PayloadAuthDto) {
     return this.authService.getPayload(dto.access_token);
   }
 

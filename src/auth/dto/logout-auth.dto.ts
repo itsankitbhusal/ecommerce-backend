@@ -1,12 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 
-export class OTPAuthDto {
+export class LogoutAuthDto {
   @ApiProperty({ required: true })
   @IsNotEmpty()
   uuid: string;
-
-  @IsNotEmpty()
-  @ApiProperty({ required: true })
-  otp: string;
 }

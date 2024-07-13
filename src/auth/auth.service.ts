@@ -3,15 +3,13 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UtilService } from 'src/utils/util.service';
 import { MailService } from 'src/mail/mail.service';
 import { ConfigService } from '@nestjs/config';
-import {
-  OTPAuthDto,
-  OtpPasswordDto,
-  PasswordAuthDto,
-  SigninAuthDto,
-} from './dto/otp-auth.dto';
+import { OTPAuthDto } from './dto/otp-auth.dto';
 import * as argon from 'argon2';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { unverifiedUserType } from './Types/user.types';
+import { PasswordAuthDto } from './dto/password-auth.dto';
+import { OtpPasswordDto } from './dto/otp-password.dto';
+import { SigninAuthDto } from './dto/signin-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -24,7 +22,7 @@ export class AuthService {
 
   async updateRtHash(uuid: string, rt: string) {
     const hash = await this.utility.hashData(rt);
-    const data = await this.prisma.users.update({
+    await this.prisma.users.update({
       where: {
         uuid: uuid,
       },
@@ -32,7 +30,6 @@ export class AuthService {
         hashRT: hash,
       },
     });
-    console.log('data after rt hash update: ', data);
   }
 
   async updateOtp(uuid: string) {
@@ -91,11 +88,13 @@ export class AuthService {
           user_mail: dto.email,
         },
       });
-    } catch (err) {}
+    } catch (err) {
+      console.log('deletion error: ', err);
+    }
 
-    const user = await this.prisma.password_otp.findUnique({
+    const user = await this.prisma.users.findUnique({
       where: {
-        user_mail: dto.email,
+        email: dto.email,
       },
     });
     if (!user) throw new HttpException('Not Found', HttpStatus.NOT_FOUND);
@@ -103,7 +102,7 @@ export class AuthService {
     const otp = String(await this.utility.generateOtp());
     const hashOtp = await this.utility.hashData(otp);
     // create a reln table to store user vs otp
-    await this.mailer.sendUserConfirmation(user.user_mail, user.user_mail, otp);
+    await this.mailer.sendUserConfirmation(user.email, user.name, otp);
 
     const newPassOtp = await this.prisma.password_otp.create({
       data: {
@@ -121,16 +120,27 @@ export class AuthService {
   }
 
   async verifyPasswordChange(dto: OtpPasswordDto) {
+    console.log('dto: ', dto);
     const passOtp = await this.prisma.password_otp.findUnique({
       where: {
         user_mail: dto.email,
       },
     });
     const isOtp = await argon.verify(passOtp.hashOtp, dto.otp);
+
     if (!isOtp)
       throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
-
     const password = await argon.hash(dto.password);
+    const oldPassword = await this.prisma.users.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (oldPassword.password === password) {
+      throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+    }
+
     const user = await this.prisma.users.update({
       where: {
         email: dto.email,
@@ -158,21 +168,16 @@ export class AuthService {
         email: dto.email,
       },
     });
-    console.log('user: ', user);
     if (!user) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
     // verify user's password
     const isUser = await argon.verify(user.password, dto.password);
-    console.log('is user: ', isUser);
     if (!isUser) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
     const tokens = await this.utility.getToken(user.uuid, user.email);
     await this.updateRtHash(user.uuid, tokens.refresh_token);
     delete user.hashRT;
     delete user.password;
-
-    console.log('tokens: ', tokens);
-    console.log('user: ', user);
     return { ...tokens, ...user };
   }
 
