@@ -21,8 +21,9 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    const data = this.ordersService.create(createOrderDto);
+  async create(@Body() createOrderDto: CreateOrderDto) {
+    const data = await this.ordersService.create(createOrderDto);
+    console.log('data: ', data);
     return plainToInstance(OrderResponseDto, data);
   }
 

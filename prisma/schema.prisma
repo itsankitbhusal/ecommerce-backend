@@ -91,14 +91,14 @@ model products {
 model orders {
   id                   Int      @default(autoincrement())
   uuid                 String   @unique @default(uuid()) @db.Uuid()
-  order_no             Int
+  // order_no             Int
   user_id              String   @db.Uuid() // fk
   product_id           String   @db.Uuid() //fk
   shipping_email       String   @db.VarChar()
   shipping_phone       String   @db.VarChar()
   shipping_address     String
   order_payment_method String   @db.VarChar()
-  cart_items           Int
+  // cart_items           Int
   items_price          String   @db.VarChar()
   delivery_charge      String   @db.VarChar()
   total_price          String   @db.VarChar()

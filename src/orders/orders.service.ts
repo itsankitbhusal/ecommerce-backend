@@ -6,8 +6,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 @Injectable()
 export class OrdersService {
   constructor(private prisma: PrismaService) {}
-  create(createOrderDto: CreateOrderDto) {
-    return this.prisma.orders.create({ data: createOrderDto });
+  async create(createOrderDto: CreateOrderDto) {
+    const created = await this.prisma.orders.create({ data: createOrderDto });
+    console.log('created: ', created);
+    return created;
   }
 
   findAll() {
