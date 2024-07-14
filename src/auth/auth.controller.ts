@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Req,
+  Res,
+  HttpStatus,
+} from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { ApiBody, ApiHeader, ApiTags } from '@nestjs/swagger';
@@ -14,10 +23,10 @@ import {
   LoginAuthResponseDto,
   PayloadResponseDto,
 } from './dto/response-auth.dto';
+import { Response } from 'express';
 
-interface CustomRequest extends Request {
-  refreshToken?: string;
-  uuid?: string;
+export interface CustomRequest extends Request {
+  cookies: { [key: string]: string };
 }
 
 @ApiTags('auth')
@@ -34,21 +43,38 @@ export class AuthController {
     });
   }
   @Post('/login')
-  login(@Body() signinAuthDto: SigninAuthDto) {
-    const data = this.authService.login(signinAuthDto);
-    return plainToInstance(LoginAuthResponseDto, data, {
+  async login(
+    @Body() signinAuthDto: SigninAuthDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const data = await this.authService.login(signinAuthDto);
+    res.cookie('access_token', data.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'prod',
+      sameSite: 'strict',
+    });
+    res.cookie('refresh_token', data.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'prod',
+      sameSite: 'strict',
+    });
+    // res.status(HttpStatus.OK).json({
+    //   user: {
+    //     uuid: data.uuid,
+    //     email: data.email,
+    //     name: data.name,
+    //   },
+    // });
+    const resData = plainToInstance(LoginAuthResponseDto, data, {
       excludeExtraneousValues: true,
     });
+
+    return resData;
   }
 
   @Get('/logout')
-  @ApiHeader({
-    name: 'refreshtoken',
-    required: true,
-    description: 'Refresh Token',
-  })
   async logout(@Req() req: CustomRequest) {
-    const refreshToken = req.headers['refreshtoken'];
+    const refreshToken = req.cookies['refresh_token'];
     return await this.authService.logout(refreshToken);
   }
 
@@ -81,22 +107,30 @@ export class AuthController {
   }
 
   @Get('/refresh')
-  @ApiHeader({
-    name: 'refreshtoken',
-    required: true,
-    description: 'Refresh Token',
-  })
-  async refreshToken(@Req() req: CustomRequest) {
-    const refreshToken = req.headers['refreshtoken'];
+  async refreshToken(
+    @Req() req: CustomRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies['refresh_token'];
     if (refreshToken) {
-      return await this.authService.refreshToken(refreshToken);
+      const accessToken = await this.authService.refreshToken(refreshToken);
+      if (accessToken) {
+        res.cookie('access_token', accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'prod',
+          sameSite: 'strict',
+        });
+
+        return accessToken;
+      }
     }
   }
 
   // @UseGuards(AuthGuard('jwt'))
-  @Post('payload')
-  async getPayload(@Body() dto: PayloadAuthDto) {
-    const payload = this.authService.getPayload(dto.access_token);
+  @Get('payload')
+  async getPayload(@Req() req: CustomRequest) {
+    const accessToken = req.cookies['access_token'];
+    const payload = this.authService.getPayload(accessToken);
 
     return plainToInstance(PayloadResponseDto, payload);
   }

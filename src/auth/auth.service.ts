@@ -174,9 +174,17 @@ export class AuthService {
     const isUser = await argon.verify(user.password, dto.password);
     if (!isUser) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
-    const tokens = await this.utility.getToken(user.uuid, user.email);
-    await this.updateRtHash(user.uuid, tokens.refresh_token);
-    return { ...tokens, ...user };
+    const accessToken = await this.utility.getAccessToken(
+      user.uuid,
+      user.email,
+    );
+    const refreshToken = await this.utility.getRefreshToken(
+      user.uuid,
+      user.email,
+    );
+
+    await this.updateRtHash(user.uuid, refreshToken);
+    return { access_token: accessToken, refresh_token: refreshToken, ...user };
   }
 
   async signup(dto: CreateAuthDto) {
@@ -244,9 +252,11 @@ export class AuthService {
     if (!Validity)
       throw new HttpException('Unauthorized2', HttpStatus.UNAUTHORIZED);
 
-    const tokens = await this.utility.getToken(user.uuid, user.email);
-    await this.updateRtHash(user.uuid, tokens.refresh_token);
-    return tokens;
+    const accessToken = await this.utility.getAccessToken(
+      user.uuid,
+      user.email,
+    );
+    return accessToken;
   }
 
   async getPayload(access_token: string) {

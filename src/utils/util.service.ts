@@ -14,17 +14,7 @@ export class UtilService {
     return await argon.hash(body);
   }
 
-  async getToken(uuid: string, email: string) {
-    await this.jwtService.signAsync(
-      {
-        uuid,
-        email,
-      },
-      {
-        secret: this.config.get('RT_SECRET'),
-        expiresIn: 60 * 60 * 60 * 7,
-      },
-    );
+  async getRefreshToken(uuid: string, email: string) {
     const refreshToken = await this.jwtService.signAsync(
       {
         uuid,
@@ -36,6 +26,10 @@ export class UtilService {
       },
     );
 
+    return refreshToken;
+  }
+
+  async getAccessToken(uuid: string, email: string) {
     const accessToken = await this.jwtService.signAsync(
       {
         uuid,
@@ -47,10 +41,7 @@ export class UtilService {
       },
     );
 
-    return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    };
+    return accessToken;
   }
 
   async generateOtp() {

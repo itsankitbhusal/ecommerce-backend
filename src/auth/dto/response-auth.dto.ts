@@ -28,11 +28,11 @@ export class LoginAuthResponseDto {
   @Expose()
   email: string;
 
-  @Expose()
-  access_token: string;
+  // @Expose()
+  // access_token: string;
 
-  @Expose()
-  refresh_token: string;
+  // @Expose()
+  // refresh_token: string;
 
   @Expose()
   created_at: string;

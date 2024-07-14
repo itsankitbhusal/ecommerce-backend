@@ -7,7 +7,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { ResponseInterceptor } from './response/response.interceptor';
-
+import * as cookieParser from 'cookie-parser';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -21,6 +21,8 @@ async function bootstrap() {
     .addBearerAuth()
     .addBasicAuth()
     .build();
+
+  app.use(cookieParser());
 
   app.enableCors({
     origin: '*',
