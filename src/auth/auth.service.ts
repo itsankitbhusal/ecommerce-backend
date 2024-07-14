@@ -176,8 +176,6 @@ export class AuthService {
 
     const tokens = await this.utility.getToken(user.uuid, user.email);
     await this.updateRtHash(user.uuid, tokens.refresh_token);
-    delete user.hashRT;
-    delete user.password;
     return { ...tokens, ...user };
   }
 
@@ -210,17 +208,16 @@ export class AuthService {
           otp: hashedOtp,
         },
       });
-      delete user.password;
-      delete user.otp;
-
       await this.mailer.sendUserConfirmation(user.email, user.name, otp);
       return user;
     }
   }
-  async logout(uuid: string) {
+  async logout(rt: string) {
+    const refreshTokenPayload = await this.utility.getPayloadRefresh(rt);
+
     await this.prisma.users.updateMany({
       where: {
-        uuid: uuid,
+        uuid: refreshTokenPayload.uuid,
         hashRT: {
           not: null,
         },
@@ -231,16 +228,19 @@ export class AuthService {
     });
   }
 
-  async refreshToken(uuid: string, rt: string) {
+  async refreshToken(rt: string) {
+    const refreshTokenPayload = await this.utility.getPayloadRefresh(rt);
+
     const user = await this.prisma.users.findUnique({
       where: {
-        uuid: uuid,
+        email: refreshTokenPayload.email,
+        uuid: refreshTokenPayload.uuid,
       },
     });
+    const Validity = await argon.verify(user.hashRT, rt);
     if (!user)
       throw new HttpException('Unauthorized1', HttpStatus.UNAUTHORIZED);
 
-    const Validity = await argon.verify(user.hashRT, rt);
     if (!Validity)
       throw new HttpException('Unauthorized2', HttpStatus.UNAUTHORIZED);
 

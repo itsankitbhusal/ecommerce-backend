@@ -1,16 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Req, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { Controller, Get, Post, Body, Patch, Req } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiHeader, ApiTags } from '@nestjs/swagger';
 import { OTPAuthDto } from './dto/otp-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SigninAuthDto } from './dto/signin-auth.dto';
 import { OtpPasswordDto } from './dto/otp-password.dto';
 import { PasswordAuthDto } from './dto/password-auth.dto';
 import { PayloadAuthDto } from './dto/payload-auth.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { LogoutAuthDto } from './dto/logout-auth.dto';
+import { plainToInstance } from 'class-transformer';
+import {
+  CreateAuthResponseDto,
+  LoginAuthResponseDto,
+  PayloadResponseDto,
+} from './dto/response-auth.dto';
 
 interface CustomRequest extends Request {
   refreshToken?: string;
@@ -24,31 +27,43 @@ export class AuthController {
 
   @Post('/signup')
   signup(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.signup(createAuthDto);
+    const data = this.authService.signup(createAuthDto);
+
+    return plainToInstance(CreateAuthResponseDto, data, {
+      excludeExtraneousValues: true,
+    });
   }
   @Post('/login')
   login(@Body() signinAuthDto: SigninAuthDto) {
-    return this.authService.login(signinAuthDto);
+    const data = this.authService.login(signinAuthDto);
+    return plainToInstance(LoginAuthResponseDto, data, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @Get('/logout')
-  @ApiBody({ type: LogoutAuthDto })
+  @ApiHeader({
+    name: 'refreshtoken',
+    required: true,
+    description: 'Refresh Token',
+  })
   async logout(@Req() req: CustomRequest) {
-    if (req.uuid) {
-      return await this.authService.logout(req.uuid);
-    }
+    const refreshToken = req.headers['refreshtoken'];
+    return await this.authService.logout(refreshToken);
   }
 
   @Post('/verify')
-  async verify(@Body() dto: OTPAuthDto, @Res() res: Response) {
+  async verify(@Body() dto: OTPAuthDto) {
     const isValid = await this.authService.verifyUser(dto);
     if (isValid) {
-      res.status(200).send({
+      return {
         message: 'Verified',
-      });
+      };
     } else {
       // Optionally, you can also set a different status code for invalid cases
-      res.status(400).send({ error: 'Invalid verification' });
+      return {
+        error: 'Invalid verification',
+      };
     }
   }
 
@@ -66,18 +81,24 @@ export class AuthController {
   }
 
   @Get('/refresh')
-  @ApiBody({ type: RefreshTokenDto })
+  @ApiHeader({
+    name: 'refreshtoken',
+    required: true,
+    description: 'Refresh Token',
+  })
   async refreshToken(@Req() req: CustomRequest) {
-    const { uuid, refreshToken } = req;
-    if (uuid && refreshToken) {
-      return await this.authService.refreshToken(uuid, refreshToken);
+    const refreshToken = req.headers['refreshtoken'];
+    if (refreshToken) {
+      return await this.authService.refreshToken(refreshToken);
     }
   }
 
   // @UseGuards(AuthGuard('jwt'))
   @Post('payload')
   async getPayload(@Body() dto: PayloadAuthDto) {
-    return this.authService.getPayload(dto.access_token);
+    const payload = this.authService.getPayload(dto.access_token);
+
+    return plainToInstance(PayloadResponseDto, payload);
   }
 
   // @Get()

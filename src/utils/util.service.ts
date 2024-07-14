@@ -15,7 +15,7 @@ export class UtilService {
   }
 
   async getToken(uuid: string, email: string) {
-    const rt = await this.jwtService.signAsync(
+    await this.jwtService.signAsync(
       {
         uuid,
         email,
@@ -25,11 +25,9 @@ export class UtilService {
         expiresIn: 60 * 60 * 60 * 7,
       },
     );
-
-    console.log('rt: ', rt);
     const refreshToken = await this.jwtService.signAsync(
       {
-        sub: uuid,
+        uuid,
         email,
       },
       {
@@ -38,11 +36,9 @@ export class UtilService {
       },
     );
 
-    console.log('rt: ', refreshToken);
-
     const accessToken = await this.jwtService.signAsync(
       {
-        sub: uuid,
+        uuid,
         email,
       },
       {
@@ -50,8 +46,6 @@ export class UtilService {
         expiresIn: 60 * 20,
       },
     );
-
-    console.log('at: ', accessToken);
 
     return {
       access_token: accessToken,
@@ -69,6 +63,16 @@ export class UtilService {
     try {
       const payload = await this.jwtService.verifyAsync(access_token, {
         secret: this.config.get('AT_SECRET'),
+      });
+      return payload;
+    } catch {
+      throw new UnauthorizedException();
+    }
+  }
+  async getPayloadRefresh(refresh_token: string) {
+    try {
+      const payload = await this.jwtService.verifyAsync(refresh_token, {
+        secret: this.config.get('RT_SECRET'),
       });
       return payload;
     } catch {
