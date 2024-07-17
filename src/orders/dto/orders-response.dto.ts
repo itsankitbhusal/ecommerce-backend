@@ -5,8 +5,8 @@ export class OrderResponseDto {
   @Expose()
   uuid: string;
 
-  @Expose()
-  order_no: string;
+  // @Expose()
+  // order_no: string;
 
   @Expose()
   user_id: string;

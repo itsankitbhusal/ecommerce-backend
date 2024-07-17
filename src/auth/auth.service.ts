@@ -174,11 +174,17 @@ export class AuthService {
     const isUser = await argon.verify(user.password, dto.password);
     if (!isUser) throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
 
-    const tokens = await this.utility.getToken(user.uuid, user.email);
-    await this.updateRtHash(user.uuid, tokens.refresh_token);
-    delete user.hashRT;
-    delete user.password;
-    return { ...tokens, ...user };
+    const accessToken = await this.utility.getAccessToken(
+      user.uuid,
+      user.email,
+    );
+    const refreshToken = await this.utility.getRefreshToken(
+      user.uuid,
+      user.email,
+    );
+
+    await this.updateRtHash(user.uuid, refreshToken);
+    return { access_token: accessToken, refresh_token: refreshToken, ...user };
   }
 
   async signup(dto: CreateAuthDto) {
@@ -210,17 +216,16 @@ export class AuthService {
           otp: hashedOtp,
         },
       });
-      delete user.password;
-      delete user.otp;
-
       await this.mailer.sendUserConfirmation(user.email, user.name, otp);
       return user;
     }
   }
-  async logout(uuid: string) {
+  async logout(rt: string) {
+    const refreshTokenPayload = await this.utility.getPayloadRefresh(rt);
+
     await this.prisma.users.updateMany({
       where: {
-        uuid: uuid,
+        uuid: refreshTokenPayload.uuid,
         hashRT: {
           not: null,
         },
@@ -231,22 +236,27 @@ export class AuthService {
     });
   }
 
-  async refreshToken(uuid: string, rt: string) {
+  async refreshToken(rt: string) {
+    const refreshTokenPayload = await this.utility.getPayloadRefresh(rt);
+
     const user = await this.prisma.users.findUnique({
       where: {
-        uuid: uuid,
+        email: refreshTokenPayload.email,
+        uuid: refreshTokenPayload.uuid,
       },
     });
+    const Validity = await argon.verify(user.hashRT, rt);
     if (!user)
       throw new HttpException('Unauthorized1', HttpStatus.UNAUTHORIZED);
 
-    const Validity = await argon.verify(user.hashRT, rt);
     if (!Validity)
       throw new HttpException('Unauthorized2', HttpStatus.UNAUTHORIZED);
 
-    const tokens = await this.utility.getToken(user.uuid, user.email);
-    await this.updateRtHash(user.uuid, tokens.refresh_token);
-    return tokens;
+    const accessToken = await this.utility.getAccessToken(
+      user.uuid,
+      user.email,
+    );
+    return accessToken;
   }
 
   async getPayload(access_token: string) {

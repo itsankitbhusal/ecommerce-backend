@@ -21,35 +21,35 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    const data = this.ordersService.create(createOrderDto);
+  async create(@Body() createOrderDto: CreateOrderDto) {
+    const data = await this.ordersService.create(createOrderDto);
     return plainToInstance(OrderResponseDto, data);
   }
 
   @Get()
-  findAll() {
-    const data = this.ordersService.findAll();
+  async findAll() {
+    const data = await this.ordersService.findAll();
     return plainToInstance(OrderResponseDto, data);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.ordersService.findOne(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.ordersService.findOne(id);
     return plainToInstance(OrderResponseDto, data);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateOrderDto: UpdateOrderDto,
   ) {
-    const data = this.ordersService.update(id, updateOrderDto);
+    const data = await this.ordersService.update(id, updateOrderDto);
     return plainToInstance(OrderResponseDto, data);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.ordersService.remove(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.ordersService.remove(id);
     if (data) {
       return 'Data deleted!';
     }

@@ -1,20 +1,22 @@
 import { Controller, Get, Post, Body, Patch, Req, Res } from '@nestjs/common';
-import { Response } from 'express';
 
 import { AuthService } from './auth.service';
-import { ApiBody, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { OTPAuthDto } from './dto/otp-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SigninAuthDto } from './dto/signin-auth.dto';
 import { OtpPasswordDto } from './dto/otp-password.dto';
 import { PasswordAuthDto } from './dto/password-auth.dto';
-import { PayloadAuthDto } from './dto/payload-auth.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { LogoutAuthDto } from './dto/logout-auth.dto';
+import { plainToInstance } from 'class-transformer';
+import {
+  CreateAuthResponseDto,
+  LoginAuthResponseDto,
+  PayloadResponseDto,
+} from './dto/response-auth.dto';
+import { Response } from 'express';
 
-interface CustomRequest extends Request {
-  refreshToken?: string;
-  uuid?: string;
+export interface CustomRequest extends Request {
+  cookies: { [key: string]: string };
 }
 
 @ApiTags('auth')
@@ -23,32 +25,61 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('/signup')
-  signup(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.signup(createAuthDto);
+  async signup(@Body() createAuthDto: CreateAuthDto) {
+    const data = await this.authService.signup(createAuthDto);
+
+    return plainToInstance(CreateAuthResponseDto, data, {
+      excludeExtraneousValues: true,
+    });
   }
   @Post('/login')
-  login(@Body() signinAuthDto: SigninAuthDto) {
-    return this.authService.login(signinAuthDto);
+  async login(
+    @Body() signinAuthDto: SigninAuthDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const data = await this.authService.login(signinAuthDto);
+    res.cookie('access_token', data.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'prod',
+      sameSite: 'strict',
+    });
+    res.cookie('refresh_token', data.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'prod',
+      sameSite: 'strict',
+    });
+    // res.status(HttpStatus.OK).json({
+    //   user: {
+    //     uuid: data.uuid,
+    //     email: data.email,
+    //     name: data.name,
+    //   },
+    // });
+    const resData = plainToInstance(LoginAuthResponseDto, data, {
+      excludeExtraneousValues: true,
+    });
+
+    return resData;
   }
 
   @Get('/logout')
-  @ApiBody({ type: LogoutAuthDto })
   async logout(@Req() req: CustomRequest) {
-    if (req.uuid) {
-      return await this.authService.logout(req.uuid);
-    }
+    const refreshToken = req.cookies['refresh_token'];
+    return await this.authService.logout(refreshToken);
   }
 
   @Post('/verify')
-  async verify(@Body() dto: OTPAuthDto, @Res() res: Response) {
+  async verify(@Body() dto: OTPAuthDto) {
     const isValid = await this.authService.verifyUser(dto);
     if (isValid) {
-      res.status(200).send({
+      return {
         message: 'Verified',
-      });
+      };
     } else {
       // Optionally, you can also set a different status code for invalid cases
-      res.status(400).send({ error: 'Invalid verification' });
+      return {
+        error: 'Invalid verification',
+      };
     }
   }
 
@@ -62,22 +93,36 @@ export class AuthController {
 
   @Post('/password/otp')
   async changePassword(@Body() dto: PasswordAuthDto) {
-    return this.authService.changePassword(dto);
+    return await this.authService.changePassword(dto);
   }
 
   @Get('/refresh')
-  @ApiBody({ type: RefreshTokenDto })
-  async refreshToken(@Req() req: CustomRequest) {
-    const { uuid, refreshToken } = req;
-    if (uuid && refreshToken) {
-      return await this.authService.refreshToken(uuid, refreshToken);
+  async refreshToken(
+    @Req() req: CustomRequest,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refreshToken = req.cookies['refresh_token'];
+    if (refreshToken) {
+      const accessToken = await this.authService.refreshToken(refreshToken);
+      if (accessToken) {
+        res.cookie('access_token', accessToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'prod',
+          sameSite: 'strict',
+        });
+
+        return accessToken;
+      }
     }
   }
 
   // @UseGuards(AuthGuard('jwt'))
-  @Post('payload')
-  async getPayload(@Body() dto: PayloadAuthDto) {
-    return this.authService.getPayload(dto.access_token);
+  @Get('payload')
+  async getPayload(@Req() req: CustomRequest) {
+    const accessToken = req.cookies['access_token'];
+    const payload = await this.authService.getPayload(accessToken);
+
+    return plainToInstance(PayloadResponseDto, payload);
   }
 
   // @Get()
