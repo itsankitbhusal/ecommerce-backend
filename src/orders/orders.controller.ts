@@ -23,7 +23,6 @@ export class OrdersController {
   @Post()
   async create(@Body() createOrderDto: CreateOrderDto) {
     const data = await this.ordersService.create(createOrderDto);
-    console.log('data: ', data);
     return plainToInstance(OrderResponseDto, data);
   }
 
@@ -49,8 +48,8 @@ export class OrdersController {
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.ordersService.remove(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.ordersService.remove(id);
     if (data) {
       return 'Data deleted!';
     }
