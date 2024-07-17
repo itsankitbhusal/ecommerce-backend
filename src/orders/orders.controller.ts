@@ -27,23 +27,23 @@ export class OrdersController {
   }
 
   @Get()
-  findAll() {
-    const data = this.ordersService.findAll();
+  async findAll() {
+    const data = await this.ordersService.findAll();
     return plainToInstance(OrderResponseDto, data);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.ordersService.findOne(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.ordersService.findOne(id);
     return plainToInstance(OrderResponseDto, data);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateOrderDto: UpdateOrderDto,
   ) {
-    const data = this.ordersService.update(id, updateOrderDto);
+    const data = await this.ordersService.update(id, updateOrderDto);
     return plainToInstance(OrderResponseDto, data);
   }
 

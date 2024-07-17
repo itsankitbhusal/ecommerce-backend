@@ -21,14 +21,14 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    const data = this.productsService.create(createProductDto);
+  async create(@Body() createProductDto: CreateProductDto) {
+    const data = await this.productsService.create(createProductDto);
     return plainToInstance(ProductResponseDTO, data);
   }
 
   @Get()
-  findAll() {
-    const data = this.productsService.findAll();
+  async findAll() {
+    const data = await this.productsService.findAll();
     return plainToInstance(ProductResponseDTO, data);
   }
 
@@ -46,17 +46,17 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateProductDto: UpdateProductDto,
   ) {
-    const data = this.productsService.update(id, updateProductDto);
+    const data = await this.productsService.update(id, updateProductDto);
     return plainToInstance(ProductResponseDTO, data);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.productsService.remove(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.productsService.remove(id);
     if (data) {
       return 'Data deleted';
     }

@@ -21,35 +21,35 @@ export class BannersController {
   constructor(private readonly bannersService: BannersService) {}
 
   @Post()
-  create(@Body() createBannerDto: CreateBannerDto) {
-    const data = this.bannersService.create(createBannerDto);
+  async create(@Body() createBannerDto: CreateBannerDto) {
+    const data = await this.bannersService.create(createBannerDto);
     return plainToInstance(BannerResponse, data);
   }
 
   @Get()
-  findAll() {
-    const data = this.bannersService.findAll();
+  async findAll() {
+    const data = await this.bannersService.findAll();
     return plainToInstance(BannerResponse, data);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.bannersService.findOne(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.bannersService.findOne(id);
     return plainToInstance(BannerResponse, data);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateBannerDto: UpdateBannerDto,
   ) {
-    const data = this.bannersService.update(id, updateBannerDto);
+    const data = await this.bannersService.update(id, updateBannerDto);
     return plainToInstance(BannerResponse, data);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.bannersService.remove(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.bannersService.remove(id);
     if (data) {
       return 'Banner deleted';
     }

@@ -1,22 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Req,
-  Res,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Req, Res } from '@nestjs/common';
 
 import { AuthService } from './auth.service';
-import { ApiBody, ApiHeader, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { OTPAuthDto } from './dto/otp-auth.dto';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { SigninAuthDto } from './dto/signin-auth.dto';
 import { OtpPasswordDto } from './dto/otp-password.dto';
 import { PasswordAuthDto } from './dto/password-auth.dto';
-import { PayloadAuthDto } from './dto/payload-auth.dto';
 import { plainToInstance } from 'class-transformer';
 import {
   CreateAuthResponseDto,
@@ -35,8 +25,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('/signup')
-  signup(@Body() createAuthDto: CreateAuthDto) {
-    const data = this.authService.signup(createAuthDto);
+  async signup(@Body() createAuthDto: CreateAuthDto) {
+    const data = await this.authService.signup(createAuthDto);
 
     return plainToInstance(CreateAuthResponseDto, data, {
       excludeExtraneousValues: true,
@@ -103,7 +93,7 @@ export class AuthController {
 
   @Post('/password/otp')
   async changePassword(@Body() dto: PasswordAuthDto) {
-    return this.authService.changePassword(dto);
+    return await this.authService.changePassword(dto);
   }
 
   @Get('/refresh')
@@ -130,7 +120,7 @@ export class AuthController {
   @Get('payload')
   async getPayload(@Req() req: CustomRequest) {
     const accessToken = req.cookies['access_token'];
-    const payload = this.authService.getPayload(accessToken);
+    const payload = await this.authService.getPayload(accessToken);
 
     return plainToInstance(PayloadResponseDto, payload);
   }

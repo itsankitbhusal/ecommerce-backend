@@ -21,35 +21,35 @@ export class CategoriesController {
   constructor(private categoriesService: CategoriesService) {}
 
   @Post()
-  create(@Body() createCategoryDto: CreateCategoryDto) {
-    const data = this.categoriesService.create(createCategoryDto);
+  async create(@Body() createCategoryDto: CreateCategoryDto) {
+    const data = await this.categoriesService.create(createCategoryDto);
     return plainToInstance(CategoryResponseDto, data);
   }
 
   @Get()
-  findAll() {
-    const data = this.categoriesService.findAll();
+  async findAll() {
+    const data = await this.categoriesService.findAll();
     return plainToInstance(CategoryResponseDto, data);
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.categoriesService.findOne(id);
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.categoriesService.findOne(id);
     return plainToInstance(CategoryResponseDto, data);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
-    const data = this.categoriesService.update(id, updateCategoryDto);
+    const data = await this.categoriesService.update(id, updateCategoryDto);
     return plainToInstance(CategoryResponseDto, data);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    const data = this.categoriesService.remove(id);
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    const data = await this.categoriesService.remove(id);
     if (data) {
       return 'Data deleted!';
     }
