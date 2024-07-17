@@ -60,6 +60,5 @@ export class ProductsController {
     if (data) {
       return 'Data deleted';
     }
-    console.log('data: ', data);
   }
 }
