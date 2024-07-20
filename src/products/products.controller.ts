@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -14,12 +15,14 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDTO } from './dto/product-response.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
+import { TokenGuard } from 'src/token/token.guard';
 
 @Controller('products')
 @ApiTags('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
+  @UseGuards(TokenGuard)
   @Post()
   async create(@Body() createProductDto: CreateProductDto) {
     const data = await this.productsService.create(createProductDto);
@@ -45,6 +48,7 @@ export class ProductsController {
     }
   }
 
+  @UseGuards(TokenGuard)
   @Patch(':id')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -54,6 +58,7 @@ export class ProductsController {
     return plainToInstance(ProductResponseDTO, data);
   }
 
+  @UseGuards(TokenGuard)
   @Delete(':id')
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.productsService.remove(id);
