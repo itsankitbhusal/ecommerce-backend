@@ -70,4 +70,21 @@ export class UtilService {
       throw new UnauthorizedException();
     }
   }
+
+  async verifyAccessToken(access_token: string) {
+    try {
+      const isAuthentic = await this.jwtService.verify(access_token, {
+        secret: this.config.get('AT_SECRET'),
+      });
+      return isAuthentic;
+    } catch (error) {}
+  }
+  async verifyRefreshToken(refresh_token: string) {
+    try {
+      const isAuthentic = await this.jwtService.verify(refresh_token, {
+        secret: this.config.get('RT_SECRET'),
+      });
+      return isAuthentic;
+    } catch (error) {}
+  }
 }
