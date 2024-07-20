@@ -1,0 +1,27 @@
+import { Observable } from 'rxjs';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { UtilService } from '../utils/util.service';
+
+@Injectable()
+export class TokenGuard implements CanActivate {
+  constructor(private readonly utilService: UtilService) {}
+
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
+    const request = context.switchToHttp().getRequest();
+
+    const cookies = request.cookies;
+
+    const isValidRT = this.utilService.verifyRefreshToken(
+      cookies.refresh_token,
+    );
+
+    const isValidAT = this.utilService.verifyAccessToken(cookies.access_token);
+    if (!isValidAT || !isValidRT) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+}
