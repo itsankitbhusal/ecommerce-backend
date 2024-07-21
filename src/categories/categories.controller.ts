@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -14,12 +15,14 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 import { CategoryResponseDto } from './dto/category-response.dto';
+import { TokenGuard } from 'src/token/token.guard';
 
 @Controller('categories')
 @ApiTags('categories')
 export class CategoriesController {
   constructor(private categoriesService: CategoriesService) {}
 
+  @UseGuards(TokenGuard)
   @Post()
   async create(@Body() createCategoryDto: CreateCategoryDto) {
     const data = await this.categoriesService.create(createCategoryDto);
@@ -38,6 +41,7 @@ export class CategoriesController {
     return plainToInstance(CategoryResponseDto, data);
   }
 
+  @UseGuards(TokenGuard)
   @Patch(':id')
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -47,6 +51,7 @@ export class CategoriesController {
     return plainToInstance(CategoryResponseDto, data);
   }
 
+  @UseGuards(TokenGuard)
   @Delete(':id')
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     const data = await this.categoriesService.remove(id);

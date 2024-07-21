@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Req, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 
 import { AuthService } from './auth.service';
 import { ApiTags } from '@nestjs/swagger';
@@ -14,6 +23,8 @@ import {
   PayloadResponseDto,
 } from './dto/response-auth.dto';
 import { Response } from 'express';
+import { TokenGuard } from 'src/token/token.guard';
+import { RtTokenGuard } from 'src/token/rt-token.guard';
 
 export interface CustomRequest extends Request {
   cookies: { [key: string]: string };
@@ -62,6 +73,7 @@ export class AuthController {
     return resData;
   }
 
+  @UseGuards(RtTokenGuard)
   @Get('/logout')
   async logout(@Req() req: CustomRequest) {
     const refreshToken = req.cookies['refresh_token'];
@@ -96,6 +108,7 @@ export class AuthController {
     return await this.authService.changePassword(dto);
   }
 
+  @UseGuards(RtTokenGuard)
   @Get('/refresh')
   async refreshToken(
     @Req() req: CustomRequest,
@@ -116,7 +129,7 @@ export class AuthController {
     }
   }
 
-  // @UseGuards(AuthGuard('jwt'))
+  @UseGuards(TokenGuard)
   @Get('payload')
   async getPayload(@Req() req: CustomRequest) {
     const accessToken = req.cookies['access_token'];
