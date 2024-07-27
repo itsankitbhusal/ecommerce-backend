@@ -59,13 +59,6 @@ export class AuthController {
       secure: process.env.NODE_ENV === 'prod',
       sameSite: 'strict',
     });
-    // res.status(HttpStatus.OK).json({
-    //   user: {
-    //     uuid: data.uuid,
-    //     email: data.email,
-    //     name: data.name,
-    //   },
-    // });
     const resData = plainToInstance(LoginAuthResponseDto, data, {
       excludeExtraneousValues: true,
     });
