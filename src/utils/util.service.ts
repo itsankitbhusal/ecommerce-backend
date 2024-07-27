@@ -14,11 +14,12 @@ export class UtilService {
     return await argon.hash(body);
   }
 
-  async getRefreshToken(uuid: string, email: string) {
+  async getRefreshToken(uuid: string, email: string, role: string) {
     const refreshToken = await this.jwtService.signAsync(
       {
         uuid,
         email,
+        role,
       },
       {
         secret: this.config.get('RT_SECRET'),
@@ -29,11 +30,12 @@ export class UtilService {
     return refreshToken;
   }
 
-  async getAccessToken(uuid: string, email: string) {
+  async getAccessToken(uuid: string, email: string, role: string) {
     const accessToken = await this.jwtService.signAsync(
       {
         uuid,
         email,
+        role,
       },
       {
         secret: this.config.get('AT_SECRET'),

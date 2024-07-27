@@ -177,10 +177,12 @@ export class AuthService {
     const accessToken = await this.utility.getAccessToken(
       user.uuid,
       user.email,
+      user.role,
     );
     const refreshToken = await this.utility.getRefreshToken(
       user.uuid,
       user.email,
+      user.role,
     );
 
     await this.updateRtHash(user.uuid, refreshToken);
@@ -255,6 +257,7 @@ export class AuthService {
     const accessToken = await this.utility.getAccessToken(
       user.uuid,
       user.email,
+      user.role,
     );
     return accessToken;
   }
