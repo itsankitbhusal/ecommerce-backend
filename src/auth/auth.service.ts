@@ -162,6 +162,22 @@ export class AuthService {
   }
 
   async login(dto: SigninAuthDto) {
+    // find if user is not verified
+    const notVerifiedUser = await this.prisma.unverified_users.findUnique({
+      where: {
+        email: dto.email,
+      },
+    });
+
+    if (notVerifiedUser) {
+      return {
+        ...notVerifiedUser,
+        verified: false,
+        access_token: null,
+        refresh_token: null,
+      };
+    }
+
     // find user and if not present throw error
     const user = await this.prisma.users.findUnique({
       where: {
