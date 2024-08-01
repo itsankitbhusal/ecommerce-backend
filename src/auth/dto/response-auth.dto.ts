@@ -26,6 +26,9 @@ export class LoginAuthResponseDto {
   name: string;
 
   @Expose()
+  verified?: boolean;
+
+  @Expose()
   email: string;
 
   @Expose()
