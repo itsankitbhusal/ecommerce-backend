@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsArray,
   IsDateString,
   IsNotEmpty,
   IsNumber,
@@ -57,10 +58,9 @@ export class CreateProductDto {
   @ApiProperty({ required: true })
   inventory_count: number;
 
-  @IsString()
-  @MinLength(2)
+  @IsArray()
   @ApiProperty()
-  other_images: string;
+  other_images: string[];
 
   @IsDateString()
   @MinLength(2)
