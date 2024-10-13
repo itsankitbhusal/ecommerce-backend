@@ -27,7 +27,7 @@ export class ProductResponseDTO {
   product_features: string;
 
   @Expose()
-  other_images: string;
+  other_images: string[];
 
   @Expose()
   product_date: Date;

@@ -78,8 +78,9 @@ model products {
   product_price       String   @db.VarChar()
   product_status      String   @db.VarChar()
   product_features    String
-  other_images        String
+  other_images        String[]
   product_date        DateTime
+  inventory_count     Int?
 
   category categories @relation(fields: [category_id], references: [uuid])
 
